@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Campaign {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique @db.VarChar(50)
+  name          String    @db.VarChar(200)
+  description   String?   @db.Text
+  coverImageUrl String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  chapters      Chapter[]
+  @@map("campaigns")
+}
+
+model Chapter {
+  id          Int       @id @default(autoincrement())
+  campaignId  Int
+  code        String    @db.VarChar(50)
+  name        String    @db.VarChar(200)
+  dateRange   String?   @db.VarChar(100)
+  description String?   @db.Text
+  orderIndex  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  missions    Mission[]
+  @@map("chapters")
+}
+
+model Mission {
+  id          Int        @id @default(autoincrement())
+  chapterId   Int
+  code        String     @db.VarChar(50)
+  title       String     @db.VarChar(200)
+  objective   String?    @db.Text
+  introText   String?    @db.Text
+  outroText   String?    @db.Text
+  difficulty  Int        @default(1)
+  orderIndex  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  chapter     Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  progress    StudentProgress[]
+  @@map("missions")
+}
+
+enum QuestionType {
+  multiple_choice
+  true_false
+}
+
+model Question {
+  id                Int           @id @default(autoincrement())
+  missionId         Int
+  questionType      QuestionType
+  prompt            String        @db.Text
+  correctFeedback   String?       @db.Text
+  incorrectFeedback String?       @db.Text
+  orderIndex        Int           @default(0)
+  correctBool       Boolean?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  mission           Mission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  options           Option[]
+  @@map("questions")
+}
+
+model Option {
+  id          Int      @id @default(autoincrement())
+  questionId  Int
+  text        String   @db.Text
+  isCorrect   Boolean  @default(false)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  @@map("options")
+}
+
+model Student {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(200)
+  email     String?   @unique @db.VarChar(200)
+  grade     String?   @db.VarChar(50)
+  school    String?   @db.VarChar(200)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  progress  StudentProgress[]
+  @@map("students")
+}
+
+model StudentProgress {
+  id              Int      @id @default(autoincrement())
+  studentId       Int
+  missionId       Int
+  completed       Boolean  @default(false)
+  score           Int      @default(0)
+  correctAnswers  Int      @default(0)
+  totalQuestions  Int      @default(0)
+  timeSpent       Int      @default(0)
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  mission         Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  @@unique([studentId, missionId])
+  @@map("student_progress")
+}
